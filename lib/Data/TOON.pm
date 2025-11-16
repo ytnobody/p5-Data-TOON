@@ -146,6 +146,13 @@ Maximum nesting depth (prevents DoS). Default: 100
 
     Data::TOON->encode($data, max_depth => 50);
 
+=item C<column_priority>
+
+Array reference of column names to prioritize (appear leftmost in tabular format). Columns not in this list appear after in alphabetical order. Default: empty array (standard alphabetical sort)
+
+    Data::TOON->encode($data, column_priority => ['id', 'name']);
+    # Will output columns as: id, name, ... (other columns alphabetically)
+
 =back
 
 =back
@@ -190,6 +197,18 @@ B<Examples:>
     #   users[2]{id,name}:
     #     1,Alice
     #     2,Bob
+
+    # Tabular array with column priority
+    my $toon = Data::TOON->encode({
+        users => [
+            { id => 1, name => 'Alice', role => 'admin' },
+            { id => 2, name => 'Bob', role => 'user' }
+        ]
+    }, column_priority => ['id', 'name']);
+    # Output:
+    #   users[2]{id,name,role}:
+    #     1,Alice,admin
+    #     2,Bob,user
 
     # List array (non-uniform objects)
     my $toon = Data::TOON->encode({

@@ -12,6 +12,7 @@ sub new {
         depth      => 0,
         max_depth  => $opts{max_depth}  // 100,
         seen       => {},  # Track object references for circular detection
+        column_priority => $opts{column_priority} || [],  # Column names to prioritize
     }, $class;
 }
 
@@ -74,7 +75,7 @@ sub _encode_object {
     }
     
     my @lines;
-    foreach my $key (sort keys %$obj) {
+    foreach my $key ($self->_sort_fields(keys %$obj)) {
         my $value = $obj->{$key};
         my $indent = ' ' x ($self->{depth} * $self->{indent});
         
@@ -155,7 +156,7 @@ sub _encode_object_with_array {
         
         if ($can_tabular) {
             # Tabular format: extract field names from first object
-            my @fields = sort keys %$first;
+            my @fields = $self->_sort_fields(keys %$first);
             
             # Add delimiter indicator in bracket
             my $delim_indicator = '';
@@ -187,7 +188,7 @@ sub _encode_object_with_array {
             
             foreach my $obj (@$array) {
                 # First field on hyphen line, remaining fields at depth+2
-                my @keys = sort keys %$obj;
+                my @keys = $self->_sort_fields(keys %$obj);
                 if (@keys > 0) {
                     # First key with hyphen at current depth
                     my $first_key = $keys[0];
@@ -330,4 +331,30 @@ sub _escape_string {
     return $str;
 }
 
+sub _sort_fields {
+    my ($self, @fields) = @_;
+    
+    # If no priority specified, use alphabetical sort (backward compatibility)
+    return sort @fields unless @{$self->{column_priority}};
+    
+    my %priority;
+    my $index = 0;
+    foreach my $col (@{$self->{column_priority}}) {
+        $priority{$col} = $index++;
+    }
+    
+    # Sort: priority columns first (by priority order), then remaining columns alphabetically
+    return sort {
+        my $a_priority = exists $priority{$a} ? $priority{$a} : 999999;
+        my $b_priority = exists $priority{$b} ? $priority{$b} : 999999;
+        
+        if ($a_priority != $b_priority) {
+            return $a_priority <=> $b_priority;
+        }
+        return $a cmp $b;
+    } @fields;
+}
+
 1;
+
+

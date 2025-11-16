@@ -1,5 +1,5 @@
 {
-   "abstract" : "It's new $module",
+   "abstract" : "Complete Perl implementation of TOON (Token-Oriented Object Notation)",
    "author" : [
       "ytnobody <ytnobody@gmail.com>"
    ],
@@ -47,6 +47,7 @@
       },
       "test" : {
          "requires" : {
+            "JSON::PP" : "0",
             "Test::More" : "0.98"
          }
       }

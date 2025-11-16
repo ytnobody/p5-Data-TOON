@@ -1,459 +1,349 @@
-# Data::TOON
 
-Complete Perl implementation of TOON (Token-Oriented Object Notation)
-
-[![CPAN](https://img.shields.io/badge/CPAN-Data::TOON-blue)](https://metacpan.org/pod/Data::TOON)
-[![License](https://img.shields.io/badge/license-Perl-blue)](http://dev.perl.org/licenses/)
-
-## NAME
+# NAME
 
 Data::TOON - Complete Perl implementation of TOON (Token-Oriented Object Notation)
 
-## SYNOPSIS
+# SYNOPSIS
 
-```perl
-use Data::TOON;
+    use Data::TOON;
 
-# Basic usage
-my $data = { name => 'Alice', age => 30, active => 1 };
-my $toon = Data::TOON->encode($data);
-print $toon;
-# Output:
-#   active: true
-#   age: 30
-#   name: Alice
+    # Basic usage
+    my $data = { name => 'Alice', age => 30, active => 1 };
+    my $toon = Data::TOON->encode($data);
+    print $toon;
+    # Output:
+    #   active: true
+    #   age: 30
+    #   name: Alice
 
-my $decoded = Data::TOON->decode($toon);
+    my $decoded = Data::TOON->decode($toon);
+    
+    # Tabular arrays
+    my $users = {
+        users => [
+            { id => 1, name => 'Alice', role => 'admin' },
+            { id => 2, name => 'Bob', role => 'user' }
+        ]
+    };
+    
+    print Data::TOON->encode($users);
+    # Output:
+    #   users[2]{id,name,role}:
+    #     1,Alice,admin
+    #     2,Bob,user
 
-# Tabular arrays (compact representation)
-my $users = {
-    users => [
-        { id => 1, name => 'Alice', role => 'admin' },
-        { id => 2, name => 'Bob', role => 'user' }
-    ]
-};
+    # Alternative delimiters
+    my $encoder = Data::TOON::Encoder->new(delimiter => '|');
+    print $encoder->encode($users);
+    # Or with tabs:
+    my $tab_encoder = Data::TOON::Encoder->new(delimiter => "\t");
 
-print Data::TOON->encode($users);
-# Output:
-#   users[2]{id,name,role}:
-#     1,Alice,admin
-#     2,Bob,user
+    # Root primitives and arrays
+    print Data::TOON->encode(42);           # Output: 42
+    print Data::TOON->encode('hello');      # Output: hello
+    print Data::TOON->encode([1, 2, 3]);    # Output: [3]: 1,2,3
 
-# Alternative delimiters
-my $encoder_tab = Data::TOON::Encoder->new(delimiter => "\t");
-my $encoder_pipe = Data::TOON::Encoder->new(delimiter => "|");
-
-# Root primitives and arrays
-print Data::TOON->encode(42);           # Output: 42
-print Data::TOON->encode('hello');      # Output: hello
-print Data::TOON->encode([1, 2, 3]);    # Output: [3]: 1,2,3
-```
-
-## DESCRIPTION
+# DESCRIPTION
 
 Data::TOON is a complete Perl implementation of TOON (Token-Oriented Object Notation), a human-friendly, 
 line-oriented data serialization format.
 
-### What is TOON?
+TOON provides:
 
-TOON is a data format that combines the simplicity of line-oriented text with the structure of JSON:
+- **Human-readable syntax** - Indentation-based, similar to YAML, with minimal quoting
+- **Multiple array formats** - Compact tabular, explicit list, or inline primitive arrays
+- **Flexible delimiters** - Support for comma, tab, and pipe delimiters
+- **Security** - DoS protection via depth limits and circular reference detection
+- **Canonical numbers** - Automatic number normalization (removes trailing zeros, etc.)
+- **Full TOON compliance** - 95%+ coverage of TOON specification v1.0
 
-- **Human-readable** - Uses indentation and simple syntax, no braces or brackets clutter
-- **JSON-compatible** - Preserves the JSON data model (objects, arrays, primitives)
-- **Compact** - Particularly efficient for arrays of uniform objects
-- **Deterministic** - Consistent, canonical encoding
-- **Safe** - No code evaluation, purely data
+The format is particularly useful for configuration files, data interchange, and human-editable data storage.
 
-TOON is particularly useful for:
-- Configuration files
-- Data interchange between systems
-- Human-editable structured data
-- Compact data representation when readability matters
+# METHODS
 
-### Key Features
+## encode( $data, %options )
 
-- ✓ **Multiple Array Formats** - Choose from Tabular, List, or Primitive array representations
-- ✓ **Flexible Delimiters** - Support for comma, tab, and pipe delimiters
-- ✓ **Security** - DoS protection via depth limiting and circular reference detection
-- ✓ **Canonical Numbers** - Automatic number normalization (removes trailing zeros, normalizes -0, etc.)
-- ✓ **Full TOON Compliance** - 95%+ coverage of TOON specification v1.0
-- ✓ **Zero Dependencies** - Pure Perl implementation, no external dependencies
-- ✓ **Portable** - Works on any system with Perl 5.8.1+
+Encodes a Perl data structure to TOON format string.
 
-## QUICKSTART
+**Parameters:**
 
-### Installation
+- `$data`
 
-```bash
-cpanm Data::TOON
-```
+    The Perl data structure to encode. Can be:
+    \- Hash reference (becomes TOON object)
+    \- Array reference (becomes TOON array)
+    \- Scalar (becomes root primitive: number, string, boolean, or null)
 
-Or from source:
+- `%options`
 
-```bash
-git clone https://github.com/ytnobody/Data-TOON.git
-cd Data-TOON
-perl Build.PL
-./Build
-./Build test
-./Build install
-```
+    Optional encoder configuration:
 
-### Basic Example
+    - `indent`
 
-```perl
-use Data::TOON;
+        Number of spaces per indentation level. Default: 2
 
-# Encoding
-my $data = {
-    name => 'Alice',
-    age => 30,
-    email => 'alice@example.com',
-    verified => 1
-};
+            Data::TOON->encode($data, indent => 4);
 
-my $toon = Data::TOON->encode($data);
-print $toon;
+    - `delimiter`
 
-# Decoding
-my $decoded = Data::TOON->decode($toon);
-print "Name: " . $decoded->{name};
-```
+        Array element delimiter character:
 
-## TOON FORMAT GUIDE
+        - `','` (default) - Comma-separated values
 
-### Basic Objects
+                items[2]{id,name}: 1,Alice
+                                   2,Bob
 
-The simplest TOON document is a set of key-value pairs:
+        - `"\t"` - Tab-separated values
 
-```
-name: Alice
-age: 30
-active: true
-```
+                items[2<TAB>]{id<TAB>name}:
+                <TAB>1<TAB>Alice
+                <TAB>2<TAB>Bob
 
-Decodes to:
-```perl
-{
-    name => 'Alice',
-    age => 30,
-    active => 1
-}
-```
+        - `'|'` - Pipe-separated values
 
-### Nested Objects
+                items[2|]{id|name}:
+                  1|Alice
+                  2|Bob
 
-Use indentation to nest objects:
+    - `strict`
 
-```
-user:
-  name: Alice
-  email: alice@example.com
-  profile:
-    bio: "Software Engineer"
-    years_experience: 5
-```
+        Enable strict mode validation. Default: 1
 
-### Data Types
+            Data::TOON->encode($data, strict => 0);
 
-TOON supports all JSON data types:
+    - `max_depth`
 
-| Type | Example | Notes |
-|------|---------|-------|
-| String | `name: Alice` | Quoted if contains spaces or special chars |
-| Number | `age: 30` | Integers and floats |
-| Boolean | `active: true` | `true` or `false` |
-| Null | `optional: null` | Represents missing/null values |
-| Array | `tags[3]: red,green,blue` | See array formats below |
-| Object | `user: {...}` | Nested with indentation |
+        Maximum nesting depth (prevents DoS). Default: 100
 
-### String Escaping
+            Data::TOON->encode($data, max_depth => 50);
 
-Standard escape sequences are supported:
+**Returns:**
 
-```
-text: "Line 1\nLine 2"
-path: "C:\\Program Files\\App"
-quote: "He said \"Hello\""
-tab_text: "Column1\tColumn2"
-```
+TOON format string. Can encode to:
+\- Object (most common): `key: value` pairs
+\- Tabular array: Compact `name[N]{fields}: row` format
+\- List array: Explicit `name[N]: - item` format  
+\- Root primitive: Single value (42, "hello", true, false, null)
+\- Root array: `[N]: value,value,...`
 
-### Array Formats
+**Examples:**
 
-TOON provides three ways to represent arrays, chosen automatically based on data:
+    # Simple object
+    my $toon = Data::TOON->encode({ name => 'Alice', age => 30 });
+    # Output:
+    #   age: 30
+    #   name: Alice
 
-#### 1. Tabular Format (Most Efficient)
+    # Nested object
+    my $toon = Data::TOON->encode({
+        user => {
+            name => 'Alice',
+            age => 30
+        }
+    });
+    # Output:
+    #   user:
+    #     age: 30
+    #     name: Alice
 
-Used when all array items are uniform objects with the same keys and primitive values:
+    # Tabular array (uniform objects)
+    my $toon = Data::TOON->encode({
+        users => [
+            { id => 1, name => 'Alice' },
+            { id => 2, name => 'Bob' }
+        ]
+    });
+    # Output:
+    #   users[2]{id,name}:
+    #     1,Alice
+    #     2,Bob
 
-```
-items[3]{id,name,price}:
-  1,Apple,1.99
-  2,Banana,0.99
-  3,Orange,1.49
-```
+    # List array (non-uniform objects)
+    my $toon = Data::TOON->encode({
+        items => [
+            { id => 1, name => 'Alice', extra => 'data' },
+            { id => 2, name => 'Bob' }
+        ]
+    });
+    # Output:
+    #   items[2]:
+    #     - extra: data
+    #       id: 1
+    #       name: Alice
+    #     - id: 2
+    #       name: Bob
 
-Decodes to:
-```perl
-{
-    items => [
-        { id => 1, name => 'Apple', price => 1.99 },
-        { id => 2, name => 'Banana', price => 0.99 },
-        { id => 3, name => 'Orange', price => 1.49 }
-    ]
-}
-```
+    # Root array
+    my $toon = Data::TOON->encode([1, 2, 3]);
+    # Output: [3]: 1,2,3
 
-#### 2. List Format (Most Flexible)
+    # Root primitive
+    my $toon = Data::TOON->encode(42);
+    # Output: 42
 
-Used for arrays with non-uniform objects or complex values:
+# EXAMPLES AND PATTERNS
 
-```
-items[2]:
-  - id: 1
-    name: Item A
-    description: "Complex item with extra fields"
-  - id: 2
-    name: Item B
-```
+## Configuration File
 
-Each item starts with a hyphen (`-`) at the list level.
+TOON is well-suited for configuration files:
 
-#### 3. Primitive Format (Simplest)
+    app_name: MyApp
+    version: 1.0.0
+    debug: false
+    database:
+      host: localhost
+      port: 5432
+      user: admin
+      max_connections: 100
+    servers[3]{host,port,role}:
+      web1.example.com,8080,primary
+      web2.example.com,8080,secondary
+      web3.example.com,8080,secondary
 
-Used for simple arrays of primitives:
+## Data Exchange Format
 
-```
-tags[3]: red,green,blue
-numbers[5]: 1,2,3,4,5
-names[2]: Alice,Bob
-```
+For APIs and data interchange where readability matters:
 
-### Delimiters
+    response:
+      status: success
+      code: 200
+      data[2]:
+        - id: 1001
+          name: Product A
+          price: 29.99
+          in_stock: true
+        - id: 1002
+          name: Product B
+          price: 49.99
+          in_stock: false
 
-Control array element separators with the `delimiter` option:
+## Handling Nested Structures
 
-```perl
-# Comma (default)
-Data::TOON->encode($data, delimiter => ',');
-# Output: items[3]: a,b,c
+    organization:
+      name: Example Corp
+      departments[2]:
+        - name: Engineering
+          teams[2]:
+            - name: Backend
+              members: 5
+            - name: Frontend
+              members: 3
+        - name: Sales
+          teams[1]:
+            - name: Enterprise
+              members: 8
 
-# Tab
-Data::TOON->encode($data, delimiter => "\t");
-# Output: items[3<TAB>]: a<TAB>b<TAB>c
+# TOON FORMAT FEATURES
 
-# Pipe
-Data::TOON->encode($data, delimiter => '|');
-# Output: items[3|]: a|b|c
-```
+## Data Types
+
+TOON supports JSON data types:
+
+- **Object** - Unordered collection of key-value pairs
+
+        user:
+          name: Alice
+          age: 30
+
+- **Array** - Ordered collection of values (3 formats available)
+
+    Tabular:
+        users\[2\]{id,name}: 1,Alice
+                           2,Bob
+
+    List:
+        items\[2\]:
+          - id: 1
+            name: Alice
+          - id: 2
+            name: Bob
+
+    Primitive:
+        tags\[3\]: red,green,blue
+
+- **String** - UTF-8 text (quoted if needed)
+
+        name: Alice
+        quote: "She said \"Hello\""
+
+- **Number** - Integer or float (canonicalized)
+
+        count: 42
+        ratio: 3.14
+
+- **Boolean** - true or false
+
+        active: true
+        deleted: false
+
+- **Null** - Null value
+
+        optional_field: null
+
+## Delimiters
+
+Three delimiter options for array values:
+
+**Comma (default):**
+    data\[3\]: a,b,c
+
+**Tab:**
+    data\[3<TAB>\]: a<TAB>b<TAB>c
+
+**Pipe:**
+    data\[3|\]: a|b|c
 
 Use tab or pipe delimiters when values might contain commas.
 
-### Root Forms
+## String Escaping
 
-TOON documents can start with different root types:
+Standard escape sequences are supported:
 
-```perl
-# Root object (default)
-Data::TOON->encode({ name => 'Alice', age => 30 });
-# Output:
-#   age: 30
-#   name: Alice
+    text: "Line 1\nLine 2"
+    path: "C:\\Program Files\\App"
+    json: "Use \" to escape quotes"
 
-# Root primitive
-Data::TOON->encode(42);
-# Output: 42
+## Root Forms
 
-Data::TOON->encode('hello');
-# Output: hello
+Documents can start with different root types:
 
-# Root array
-Data::TOON->encode([1, 2, 3]);
-# Output: [3]: 1,2,3
-```
+    # Root object (default)
+    name: Alice
+    age: 30
 
-## API REFERENCE
+    # Root primitive
+    42
+    
+    # Root array
+    [3]: a,b,c
 
-### Main Methods
+# PERFORMANCE CONSIDERATIONS
 
-#### `encode( $data, %options )`
+- Encoding is O(n) in data size
+=item \* Decoding is O(n) in text size
+=item \* Memory usage is proportional to data complexity
+=item \* Large documents (>100MB) may require streaming parser
 
-Encodes Perl data to TOON format.
+# SECURITY
 
-**Parameters:**
-- `$data` - Perl data structure (hashref, arrayref, or scalar)
-- `%options` - Optional:
-  - `indent` - Spaces per level (default: 2)
-  - `delimiter` - Array delimiter: ',' (default), "\t", or '|'
-  - `strict` - Strict mode (default: 1)
-  - `max_depth` - Max nesting depth (default: 100)
+Data::TOON includes several security features:
 
-**Returns:** TOON format string
+- **Depth Limiting** - Prevents stack overflow from deeply nested structures
+    Default max\_depth: 100 levels
+    Configurable via encode/decode options
+- **Circular Reference Detection** - Prevents infinite loops during encoding
+    Automatically detects and rejects circular references
+- **Input Validation** - Strict parsing rules prevent injection attacks
+    All strings are treated as literal values
+    No code evaluation or command injection possible
 
-**Example:**
-```perl
-my $toon = Data::TOON->encode($data, indent => 4, delimiter => '|');
-```
+# COMPATIBILITY
 
-#### `decode( $toon_text, %options )`
+- Perl 5.8.1 or later
+=item \* No external dependencies
+=item \* Pure Perl implementation (portable)
 
-Decodes TOON format to Perl data.
-
-**Parameters:**
-- `$toon_text` - TOON format text
-- `%options` - Optional:
-  - `strict` - Strict mode (default: 1)
-  - `max_depth` - Max nesting depth (default: 100)
-
-**Returns:** Perl data structure
-
-**Example:**
-```perl
-my $data = Data::TOON->decode($toon_text);
-```
-
-#### `validate( $toon_text )`
-
-Validates TOON format text.
-
-**Parameters:**
-- `$toon_text` - Text to validate
-
-**Returns:** Boolean (1 if valid, 0 if invalid)
-
-**Example:**
-```perl
-die "Invalid TOON" unless Data::TOON->validate($toon_text);
-```
-
-### Encoder/Decoder Classes
-
-For advanced usage, instantiate encoder/decoder directly:
-
-```perl
-use Data::TOON::Encoder;
-use Data::TOON::Decoder;
-
-my $encoder = Data::TOON::Encoder->new(
-    indent => 4,
-    delimiter => '|',
-    max_depth => 50
-);
-
-my $encoded = $encoder->encode($data);
-
-my $decoder = Data::TOON::Decoder->new(
-    strict => 0,
-    max_depth => 200
-);
-
-my $decoded = $decoder->decode($toon_text);
-```
-
-## REAL-WORLD EXAMPLES
-
-### Configuration File
-
-```
-app:
-  name: MyApp
-  version: 1.0.0
-  debug: false
-
-database:
-  host: localhost
-  port: 5432
-  user: admin
-  max_connections: 100
-
-servers[3]{host,port,role}:
-  web1.example.com,8080,primary
-  web2.example.com,8080,secondary
-  backup.example.com,9090,backup
-```
-
-### API Response
-
-```
-response:
-  status: success
-  code: 200
-  timestamp: 2024-01-15T10:30:00Z
-  data[2]:
-    - id: 1001
-      name: Product A
-      price: 29.99
-      in_stock: true
-      tags[2]: electronics,gadgets
-    - id: 1002
-      name: Product B
-      price: 49.99
-      in_stock: false
-      tags[1]: software
-```
-
-### Nested Structure
-
-```
-organization:
-  name: Example Corp
-  departments[2]:
-    - name: Engineering
-      manager: Alice
-      teams[2]:
-        - name: Backend
-          size: 5
-        - name: Frontend
-          size: 3
-    - name: Sales
-      manager: Bob
-      teams[1]:
-        - name: Enterprise
-          size: 8
-```
-
-## PERFORMANCE
-
-- **Encoding**: O(n) in data size
-- **Decoding**: O(n) in text size
-- **Memory**: Proportional to data complexity
-- **Streaming**: Not supported (full document in memory)
-
-For most applications, performance is negligible compared to I/O.
-
-## SECURITY
-
-Data::TOON includes security measures:
-
-### Depth Limiting
-
-Prevents stack overflow from deeply nested structures:
-```perl
-# Default max_depth: 100
-Data::TOON->encode($data, max_depth => 50);  # More restrictive
-```
-
-### Circular Reference Detection
-
-Automatically detects and rejects circular references:
-```perl
-my $obj = { name => 'Alice' };
-$obj->{self} = $obj;  # Raises error during encoding
-```
-
-### Input Validation
-
-- No code evaluation or dynamic execution
-- All strings treated as literal values
-- Strict parsing prevents injection attacks
-
-## COMPATIBILITY
-
-- **Perl**: 5.8.1 or later
-- **Operating Systems**: All (tested on Linux, macOS, Windows)
-- **Dependencies**: None (pure Perl)
-
-## TOON SPECIFICATION COMPLIANCE
+# TOON SPECIFICATION COMPLIANCE
 
 This implementation achieves 95%+ compliance with TOON Specification v1.0:
 
@@ -461,122 +351,54 @@ This implementation achieves 95%+ compliance with TOON Specification v1.0:
 ✓ Complete array support (all 3 formats)
 ✓ All delimiters (comma, tab, pipe)
 ✓ Root forms (object, array, primitive)
-✓ String escaping (standard sequences)
+✓ String escaping
 ✓ Canonical number form
 ✓ Security measures
-✓ Full automatic type inference
+✓ Full type inference
 
-**Partially Implemented:**
-- Strict Mode Options (basic validation)
-- TOON Core Profile (90% support)
+See [TOON Specification](https://github.com/toon-format/spec/blob/main/SPEC.md) for complete specification.
 
-**Not Implemented:**
-- Key folding/path expansion (optional feature)
-- Unicode normalization (advanced feature)
+# COMMON ERRORS AND TROUBLESHOOTING
 
-See [TOON Specification](https://github.com/toon-format/spec/blob/main/SPEC.md) for complete details.
+## "Maximum nesting depth exceeded"
 
-## TROUBLESHOOTING
+If you encounter this error, your data is nested more than 100 levels deep:
 
-### "Maximum nesting depth exceeded"
+    # Increase max_depth
+    my $encoded = Data::TOON->encode($data, max_depth => 200);
 
-Your data is nested more than 100 levels deep:
-```perl
-# Increase max_depth
-my $encoded = Data::TOON->encode($data, max_depth => 200);
-```
-
-### "Circular reference detected"
+## "Circular reference detected"
 
 Your data structure contains a reference to itself:
-```perl
-my $obj = { name => 'Alice' };
-$obj->{self} = $obj;  # This creates a circle!
-# Solution: Remove the circular reference
-```
 
-### Unexpected type inference
+    my $obj = { name => 'Alice' };
+    $obj->{self} = $obj;  # This creates a circle!
+
+Solution: Remove the circular reference before encoding.
+
+## Inconsistent type inference
 
 If values aren't being parsed as expected, use explicit quoting:
-```perl
-# Ambiguous - might be interpreted as number
-value: 42
 
-# Explicit - definitely a string
-value: "42"
-```
+    # Without quotes - might be interpreted as number
+    value: 42
+    
+    # With quotes - definitely a string
+    value: "42"
 
-### Special characters in values
+# SEE ALSO
 
-Use quotes when values contain delimiters or special characters:
-```perl
-# Needs quotes (contains comma)
-users[2]{id,name}:
-  1,"Smith, John"
-  2,"Doe, Jane"
-```
-
-## RELATED PROJECTS
-
-- [TOON Specification](https://github.com/toon-format/spec/blob/main/SPEC.md) - Official specification
-- [TOON Implementations](https://github.com/toon-format) - Implementations in other languages
+- [TOON Specification](https://github.com/toon-format/spec/blob/main/SPEC.md)
 - [JSON](https://www.json.org/) - Data model foundation
 - [YAML](https://yaml.org/) - Similar indentation-based format
 
-## REQUIREMENTS
-
-- Perl 5.8.1 or higher
-- No external dependencies
-
-## INSTALLATION
-
-### From CPAN
-
-```bash
-cpanm Data::TOON
-```
-
-### From Source
-
-```bash
-git clone https://github.com/ytnobody/Data-TOON.git
-cd Data-TOON
-perl Build.PL
-./Build
-./Build test
-./Build install
-```
-
-## LICENSE
+# LICENSE
 
 Copyright (C) ytnobody.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
-## AUTHOR
+# AUTHOR
 
 ytnobody <ytnobody@gmail.com>
-
-## CONTRIBUTING
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new features
-4. Ensure all tests pass
-5. Submit a pull request
-
-## SEE ALSO
-
-- [TOON Specification](https://github.com/toon-format/spec/blob/main/SPEC.md)
-- [Data::TOON POD Documentation](https://metacpan.org/pod/Data::TOON)
-- [JSON](https://www.json.org/)
-- [Perl Data Structures](https://perldoc.perl.org/perlref)
-
----
-
-**Status:** ✅ Production Ready | **Test Coverage:** 107 tests | **Specification Compliance:** 95%+
-
-For issues, questions, or suggestions, please visit the [GitHub repository](https://github.com/ytnobody/Data-TOON).

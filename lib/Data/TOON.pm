@@ -1,5 +1,5 @@
 package Data::TOON;
-use 5.008001;
+use 5.014;
 use strict;
 use warnings;
 
@@ -409,7 +409,7 @@ Data::TOON includes several security features:
 
 =over 4
 
-=item * Perl 5.8.1 or later
+=item * Perl 5.14 or later
 =item * No external dependencies
 =item * Pure Perl implementation (portable)
 

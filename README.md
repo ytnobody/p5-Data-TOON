@@ -1,4 +1,4 @@
-
+[![Actions Status](https://github.com/ytnobody/p5-Data-TOON/actions/workflows/test.yml/badge.svg)](https://github.com/ytnobody/p5-Data-TOON/actions)
 # NAME
 
 Data::TOON - Complete Perl implementation of TOON (Token-Oriented Object Notation)
@@ -339,7 +339,7 @@ Data::TOON includes several security features:
 
 # COMPATIBILITY
 
-- Perl 5.8.1 or later
+- Perl 5.14 or later
 =item \* No external dependencies
 =item \* Pure Perl implementation (portable)
 

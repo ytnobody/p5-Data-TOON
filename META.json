@@ -42,7 +42,7 @@
       },
       "runtime" : {
          "requires" : {
-            "perl" : "5.008001"
+            "perl" : "5.014"
          }
       },
       "test" : {
@@ -53,6 +53,17 @@
       }
    },
    "release_status" : "unstable",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/ytnobody/p5-Data-TOON/issues"
+      },
+      "homepage" : "https://github.com/ytnobody/p5-Data-TOON",
+      "repository" : {
+         "type" : "git",
+         "url" : "https://github.com/ytnobody/p5-Data-TOON.git",
+         "web" : "https://github.com/ytnobody/p5-Data-TOON"
+      }
+   },
    "version" : "0.01",
    "x_serialization_backend" : "JSON::PP version 4.06",
    "x_static_install" : 1

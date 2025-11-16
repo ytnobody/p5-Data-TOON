@@ -1,5 +1,5 @@
 package Data::TOON::Decoder;
-use 5.008001;
+use 5.014;
 use strict;
 use warnings;
 

@@ -7,7 +7,7 @@ use Data::TOON::Encoder;
 use Data::TOON::Decoder;
 use Data::TOON::Validator;
 
-our $VERSION = "0.01";
+our $VERSION = "0.02";
 
 =encoding utf-8
 

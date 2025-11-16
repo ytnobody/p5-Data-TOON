@@ -1,6 +1,8 @@
 Revision history for Perl extension Data-TOON
 
 {{$NEXT}}
+
+0.02 2025-11-16T07:54:32Z
     - Improved error handling
     - Enhanced validation logic
     - Bug fixes and code refactoring

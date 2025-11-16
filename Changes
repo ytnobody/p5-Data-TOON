@@ -1,0 +1,9 @@
+Revision history for Perl extension Data-TOON
+
+{{$NEXT}}
+
+    - Initial release with core API structure
+    - Encoder, Decoder, Validator module templates
+    - Comprehensive README with TOON format examples
+    - Basic test suite (compile, encode/decode, validate)
+
